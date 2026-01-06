@@ -64,7 +64,7 @@ const Profile = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid sm:grid-cols-3 gap-6 mb-8">
+        {/* <div className="grid sm:grid-cols-3 gap-6 mb-8">
           {stats.map((stat, index) => (
             <div 
               key={index}
@@ -78,7 +78,7 @@ const Profile = () => {
               <p className="text-sm text-muted-foreground">{stat.label}</p>
             </div>
           ))}
-        </div>
+        </div> */}
 
         {/* Recent Activity */}
         <section className="medical-card">

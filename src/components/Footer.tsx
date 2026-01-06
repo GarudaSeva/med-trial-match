@@ -25,7 +25,6 @@ const Footer = () => {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <div className="w-10 h-10 rounded-xl gradient-medical flex items-center justify-center">
-                <Activity className="w-5 h-5 text-primary-foreground" />
               </div>
               <span className="text-xl font-bold text-gradient-medical">MedTrailMatch</span>
             </div>

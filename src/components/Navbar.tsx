@@ -28,8 +28,8 @@ const Navbar = () => {
   const navLinks = [
     { to: '/', label: 'Home', icon: Home },
     { to: '/upload', label: 'Upload Report', icon: Upload },
-    { to: '/diseases', label: 'Diseases', icon: BookOpen },
-    { to: '/about', label: 'About', icon: Info },
+    // { to: '/diseases', label: 'Diseases', icon: BookOpen },
+    // { to: '/about', label: 'About', icon: Info },
     { to: '/profile', label: 'Profile', icon: User },
   ];
 

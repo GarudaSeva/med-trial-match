@@ -26,37 +26,84 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   });
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    const mockUser: User = {
-      id: '1',
-      username: email.split('@')[0],
-      email,
-      reportsAnalyzed: 3,
-      lastUploadDate: new Date().toISOString(),
-    };
-    
-    setUser(mockUser);
-    localStorage.setItem('medtrailmatch_user', JSON.stringify(mockUser));
-    return true;
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Login failed');
+      }
+
+      const data = await response.json();
+      
+      const loggedInUser: User = {
+        id: data.user?.id || '1',
+        username: data.user?.username || email.split('@')[0],
+        email: data.user?.email || email,
+        reportsAnalyzed: data.user?.reportsAnalyzed || 0,
+        lastUploadDate: data.user?.lastUploadDate || null,
+      };
+      
+      setUser(loggedInUser);
+      localStorage.setItem('medtrailmatch_user', JSON.stringify(loggedInUser));
+      if (data.token) {
+        localStorage.setItem('auth_token', data.token);
+      }
+      return true;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
   };
 
   const signup = async (username: string, email: string, password: string): Promise<boolean> => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    const mockUser: User = {
-      id: '1',
-      username,
-      email,
-      reportsAnalyzed: 0,
-      lastUploadDate: null,
-    };
-    
-    setUser(mockUser);
-    localStorage.setItem('medtrailmatch_user', JSON.stringify(mockUser));
-    return true;
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Signup failed');
+      }
+
+      const data = await response.json();
+      
+      const newUser: User = {
+        id: data.user?.id || '1',
+        username: data.user?.username || username,
+        email: data.user?.email || email,
+        reportsAnalyzed: 0,
+        lastUploadDate: null,
+      };
+      
+      setUser(newUser);
+      localStorage.setItem('medtrailmatch_user', JSON.stringify(newUser));
+      if (data.token) {
+        localStorage.setItem('auth_token', data.token);
+      }
+      return true;
+    } catch (error) {
+      console.error('Signup error:', error);
+      throw error;
+    }
   };
 
   const logout = () => {

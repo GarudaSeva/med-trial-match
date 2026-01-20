@@ -54,18 +54,18 @@ const AppRoutes = () => {
           <Route path="/upload" element={
             <ProtectedRoute><Upload /></ProtectedRoute>
           } />
-          {/* <Route path="/diseases" element={
+          <Route path="/diseases" element={
             <ProtectedRoute><Diseases /></ProtectedRoute>
-          } /> */}
+          } />
           <Route path="/diseases/:id" element={
             <ProtectedRoute><DiseaseDetail /></ProtectedRoute>
           } />
           <Route path="/profile" element={
             <ProtectedRoute><Profile /></ProtectedRoute>
           } />
-          {/* <Route path="/about" element={
+          <Route path="/about" element={
             <ProtectedRoute><About /></ProtectedRoute>
-          } /> */}
+          } />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

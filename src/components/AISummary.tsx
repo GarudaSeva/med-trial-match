@@ -1,14 +1,16 @@
 import { FileText, CheckCircle, Info, Cpu } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import DetailedRecommendations from '@/components/DetailedRecommendations';
 
 interface AISummaryProps {
   summary: string;
   recommendations: string[];
   confidence: number;
   modelVersion: string;
+  details?: any;
 }
 
-const AISummary = ({ summary, recommendations, confidence, modelVersion }: AISummaryProps) => {
+const AISummary = ({ summary, recommendations, confidence, modelVersion, details }: AISummaryProps) => {
   return (
     <section className="medical-card animate-fade-in-up" style={{ animationDelay: '200ms' }}>
       <div className="flex items-center gap-3 mb-6">
@@ -35,20 +37,29 @@ const AISummary = ({ summary, recommendations, confidence, modelVersion }: AISum
       </div>
 
       {/* Recommendations */}
-      <div className="mb-6">
-        <h4 className="font-semibold mb-4">Recommendations</h4>
-        <div className="space-y-3">
-          {recommendations.map((rec, index) => (
-            <div 
-              key={index}
-              className="flex items-start gap-3 p-4 rounded-xl bg-accent/50 border border-border"
-            >
-              <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-              <p className="text-foreground">{rec}</p>
-            </div>
-          ))}
+      {recommendations.length > 0 && (
+        <div className="mb-6">
+          <h4 className="font-semibold mb-4">Recommendations</h4>
+          <div className="space-y-3">
+            {recommendations.map((rec, index) => (
+              <div 
+                key={index}
+                className="flex items-start gap-3 p-4 rounded-xl bg-accent/50 border border-border"
+              >
+                <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-foreground">{rec}</p>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Detailed Recommendations (Accordion) */}
+      {details && (
+        <div className="mb-6">
+           <DetailedRecommendations details={details} />
+        </div>
+      )}
 
       {/* Model Info */}
       <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-border">

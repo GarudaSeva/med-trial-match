@@ -39,7 +39,7 @@ const HealthRiskCard = ({ status, score, riskFactors }: HealthRiskProps) => {
     },
   };
 
-  const config = statusConfig[status];
+  const config = statusConfig[status] || statusConfig.LOW;
   const StatusIcon = config.icon;
 
   return (
@@ -76,9 +76,9 @@ const HealthRiskCard = ({ status, score, riskFactors }: HealthRiskProps) => {
             <p className="text-sm text-muted-foreground mb-1">Severity Score</p>
             <div className="flex items-baseline gap-1">
               <span className={`text-4xl font-bold ${config.textClass}`}>
-                {score.toFixed(2)}
+                {Math.round(score)}
               </span>
-              <span className="text-muted-foreground">/1.00</span>
+              <span className="text-muted-foreground">/ 100</span>
             </div>
           </div>
         </div>

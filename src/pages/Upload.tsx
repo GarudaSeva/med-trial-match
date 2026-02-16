@@ -9,63 +9,123 @@ import AISummary from '@/components/AISummary';
 type AnalysisState = 'idle' | 'processing' | 'complete';
 
 const Upload = () => {
-  const { updateReportStats } = useAuth();
+  const { user, updateReportStats } = useAuth();
   const [analysisState, setAnalysisState] = useState<AnalysisState>('idle');
   const [processingStage, setProcessingStage] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
-  // Dummy data for predictions
-  const predictedDiseases = [
-    { 
-      name: 'Anemia', 
-      probability: 87,
-      description: 'A condition in which you lack enough healthy red blood cells to carry adequate oxygen to your body\'s tissues.'
-    },
-    { 
-      name: 'Hypertension', 
-      probability: 42,
-      description: 'A condition in which the force of the blood against the artery walls is too high, often leading to heart disease.'
-    },
-  ];
-
-  const healthRisk = {
-    status: 'MODERATE' as const,
-    score: 0.63,
-    riskFactors: [
-      { name: 'Low hemoglobin levels', severity: 'high' as const },
-      { name: 'Elevated blood pressure', severity: 'moderate' as const },
-    ],
-  };
-
-  const aiSummary = {
-    summary: 'The report indicates low hemoglobin levels (10.2 g/dL), suggesting a high likelihood of anemia. Blood pressure readings are slightly elevated (138/88 mmHg), indicating a moderate risk of hypertension. Iron and vitamin B12 levels should be further evaluated.',
-    recommendations: [
-      'Consult a physician for comprehensive anemia evaluation and potential iron studies',
-      'Consider incorporating iron-rich foods (spinach, red meat, legumes) or supplements as advised',
-      'Monitor blood pressure regularly and maintain a low-sodium diet',
-      'Schedule follow-up blood work in 4-6 weeks to track hemoglobin levels',
-    ],
-    confidence: 0.91,
-    modelVersion: 'biobert-health-v1.0',
-  };
+  const [predictedDiseases, setPredictedDiseases] = useState<any[]>([]);
+  const [healthRisk, setHealthRisk] = useState<any>(null);
+  const [aiSummary, setAiSummary] = useState<any>(null);
 
   const handleAnalyze = async (file: File) => {
     setAnalysisState('processing');
     setProcessingStage(0);
+    setError(null);
 
-    // Simulate AI processing stages
-    for (let i = 0; i < 4; i++) {
-      await new Promise(resolve => setTimeout(resolve, 1200));
-      setProcessingStage(i + 1);
+    try {
+      // Simulate initial processing stages while uploading/waiting
+      const progressInterval = setInterval(() => {
+        setProcessingStage((prev) => (prev < 3 ? prev + 1 : prev));
+      }, 1000);
+
+      const formData = new FormData();
+      formData.append('file', file);
+      if (user?.email) {
+        formData.append('email', user.email);
+      }
+
+      const response = await fetch('http://localhost:5000/predict', {
+        method: 'POST',
+        body: formData,
+      });
+
+      clearInterval(progressInterval);
+      setProcessingStage(4); // Finalizing
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || 'Failed to analyze report');
+      }
+
+      const data = await response.json();
+      console.log("API Response:", data);
+
+      // Map Disease Predictions
+      const diseases = (data.disease_predictions || []).map((p: any) => ({
+        name: p.disease,
+        probability: Math.round(p.probability * 100),
+        description: p.details?.description || p.description || 'No description available for this condition.',
+        details: p.details
+      }));
+      setPredictedDiseases(diseases);
+
+      // Map Health Risk
+      // Frontend expects: LOW, MODERATE, HIGH
+      // Backend returns: LOW, MEDIUM, HIGH, CRITICAL
+      let riskStatus = 'LOW';
+      if (data.risk_assessment?.risk_level === 'MEDIUM') riskStatus = 'MODERATE';
+      else if (data.risk_assessment?.risk_level === 'HIGH' || data.risk_assessment?.risk_level === 'CRITICAL') riskStatus = 'HIGH';
+      else if (data.risk_assessment?.risk_level === 'LOW') riskStatus = 'LOW';
+      
+      let abnormalLabs = (data.abnormal_labs || []).map((lab: any) => ({
+        name: `${lab.test} (${lab.value})`,
+        severity: lab.status === 'HIGH' || lab.status === 'CRITICAL' ? 'high' : 'moderate',
+      }));
+
+      // If no abnormal labs but high risk (due to disease prediction), add the disease as a risk factor
+      if (abnormalLabs.length === 0 && riskStatus !== 'LOW' && data.disease_predictions?.[0]) {
+        const topDisease = data.disease_predictions[0];
+        abnormalLabs.push({
+          name: `Potential ${topDisease.disease} Detected`,
+          severity: riskStatus === 'HIGH' ? 'high' : 'moderate'
+        });
+      }
+
+      setHealthRisk({
+        status: riskStatus,
+        score: data.risk_assessment?.risk_score || 0,
+        riskFactors: abnormalLabs.length > 0 ? abnormalLabs : [{ name: "No major risk factors found", severity: "low" }],
+      });
+
+      // Filter out detailed recommendations for the summary view since they are shown in accordions
+      const summaryRecommendations = (data.summary?.recommendations || []).filter((r: string) => 
+        !r.startsWith("Precautions:") &&
+        !r.startsWith("Recommended Foods:") &&
+        !r.startsWith("Avoid Foods:") &&
+        !r.startsWith("Common Medicines:") &&
+        !r.startsWith("Recommended Tests:")
+      );
+
+      // Map Summary
+      setAiSummary({
+        summary: data.summary?.summary_text || `Analysis complete. Found ${data.abnormal_count} abnormal lab results. Risk level assessed as ${data.risk_assessment?.risk_level}.`,
+        recommendations: summaryRecommendations,
+        confidence: data.disease_predictions?.[0]?.probability || 0.85, 
+        modelVersion: 'biobert-health-v1.0',
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 500)); // Small delay for UX
+      setAnalysisState('complete');
+      updateReportStats();
+
+    } catch (err: any) {
+      console.error("Analysis Error:", err);
+      setError(err.message || "An error occurred during analysis.");
+      setAnalysisState('idle');
     }
-
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setAnalysisState('complete');
-    updateReportStats();
   };
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto space-y-8">
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 text-red-600 p-4 rounded-lg border border-red-200">
+            Error: {error}
+          </div>
+        )}
+
         {/* Upload Section - Always visible */}
         {analysisState === 'idle' && (
           <UploadSection onAnalyze={handleAnalyze} isAnalyzing={false} />
@@ -89,9 +149,20 @@ const Upload = () => {
               </button>
             </div>
 
-            <PredictedDiseases diseases={predictedDiseases} />
-            <HealthRiskCard {...healthRisk} />
-            <AISummary {...aiSummary} />
+            {predictedDiseases.length > 0 && (
+                <PredictedDiseases diseases={predictedDiseases} />
+            )}
+            
+            {healthRisk && (
+                <HealthRiskCard {...healthRisk} />
+            )}
+            
+            {aiSummary && (
+                <AISummary 
+                  {...aiSummary} 
+                  details={predictedDiseases.length > 0 ? predictedDiseases[0].details : null}
+                />
+            )}
           </>
         )}
       </div>
